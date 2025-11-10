@@ -1,0 +1,7 @@
+{
+  "apiTokenSecretRef": {
+    "name": "hostinger-api-token-secret",
+    "key": "hostinger-api-token"
+  },
+  "serverURL": "https://developers.hostinger.com"
+}

@@ -8,14 +8,14 @@
 # The name will need to be referenced in each Issuer's `webhook` stanza to
 # inform cert-manager of where to send ChallengePayload resources in order to
 # solve the DNS01 challenge.
-groupName: acme.mycompany.com
+groupName: hostinger-webhook.kbrw.pl
 
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
 
 image:
-  repository: mycompany/webhook-image
+  repository: ghcr.io/Lokinado/cert-manager-webhook-hostinger
   tag: latest
   pullPolicy: IfNotPresent
 
