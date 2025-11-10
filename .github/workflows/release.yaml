@@ -129,7 +129,7 @@ jobs:
       - name: Publish Helm Chart to GHCR (OCI)
         env:
           CHART_FILE: ${{ steps.package_chart.outputs.CHART_FILE_PATH }}
-          OCI_NAMESPACE: ${{ github.repository_owner }}
+          OCI_NAMESPACE: ${{ github.repository_owner | tolower }}
         run: |
           echo "Publishing chart $CHART_FILE to oci://${{ env.REGISTRY }}/$OCI_NAMESPACE"
           helm push $CHART_FILE oci://${{ env.REGISTRY }}/$OCI_NAMESPACE
