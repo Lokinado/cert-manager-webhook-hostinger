@@ -126,10 +126,16 @@ jobs:
           echo "Packaged chart: $CHART_FILE_PATH"
           echo "CHART_FILE_PATH=$CHART_FILE_PATH" >> $GITHUB_OUTPUT
 
+      - name: Prepare OCI Namespace Variable
+        id: prep_vars
+        run: |
+          NAMESPACE_LOWER="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "OCI_NAMESPACE=$NAMESPACE_LOWER" >> $GITHUB_OUTPUT
+
       - name: Publish Helm Chart to GHCR (OCI)
         env:
           CHART_FILE: ${{ steps.package_chart.outputs.CHART_FILE_PATH }}
-          OCI_NAMESPACE: ${{ github.repository_owner | tolower }}
+          OCI_NAMESPACE: ${{ steps.prep_vars.outputs.OCI_NAMESPACE }}
         run: |
           echo "Publishing chart $CHART_FILE to oci://${{ env.REGISTRY }}/$OCI_NAMESPACE"
           helm push $CHART_FILE oci://${{ env.REGISTRY }}/$OCI_NAMESPACE
