@@ -43,11 +43,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Use semver tag, e.g., 'v1.0.1' (from release)
-            type=semver,pattern={{version}}
-            # Use semver tag, e.g., 'v1.0' (from release 'v1.0.1')
+            type=semver,pattern={{raw}}
             type=semver,pattern={{major}}.{{minor}}
-            # Tag as 'latest' only if it's the newest semver release
             type=semver,pattern=latest
 
       - name: Build and push Docker image
