@@ -15,7 +15,7 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: ghcr.io/Lokinado/cert-manager-webhook-hostinger
+  repository: ghcr.io/lokinado/cert-manager-webhook-hostinger
   tag: latest
   pullPolicy: IfNotPresent
 
