@@ -1,63 +1,122 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/cert-manager/cert-manager/d53c0b9270f8cd90d908460d69502694e1838f5f/logo/logo-small.png" height="256" width="256" alt="cert-manager project logo" />
-</p>
+# Cert Manager Webhook Hostinger
 
-# ACME webhook example
+This webhook allows `cert-manager` to solve ACME DNS01 challenges using the [Hostinger](https://www.hostinger.com/) API.
 
-The ACME issuer type supports an optional 'webhook' solver, which can be used
-to implement custom DNS01 challenge solving logic.
+## Prerequisites
 
-This is useful if you need to use cert-manager with a DNS provider that is not
-officially supported in cert-manager core.
+* **cert-manager:** v1.15.0+ (Verified).
+    * *Note: Older versions utilizing the `cert-manager.io/v1` API group may work but are untested.*
+* **Kubernetes:** v1.21+
+* **Helm:** v3+
 
-## Why not in core?
+For installation instructions, strictly follow the [official cert-manager documentation](https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm).
 
-As the project & adoption has grown, there has been an influx of DNS provider
-pull requests to our core codebase. As this number has grown, the test matrix
-has become un-maintainable and so, it's not possible for us to certify that
-providers work to a sufficient level.
+## Installation
 
-By creating this 'interface' between cert-manager and DNS providers, we allow
-users to quickly iterate and test out new integrations, and then packaging
-those up themselves as 'extensions' to cert-manager.
-
-We can also then provide a standardised 'testing framework', or set of
-conformance tests, which allow us to validate that a DNS provider works as
-expected.
-
-## Creating your own webhook
-
-Webhook's themselves are deployed as Kubernetes API services, in order to allow
-administrators to restrict access to webhooks with Kubernetes RBAC.
-
-This is important, as otherwise it'd be possible for anyone with access to your
-webhook to complete ACME challenge validations and obtain certificates.
-
-To make the set up of these webhook's easier, we provide a template repository
-that can be used to get started quickly.
-
-When implementing your webhook, you should set the `groupName` in the
-[values.yml](deploy/example-webhook/values.yaml) of your chart to a domain name that 
-you - as the webhook-author - own. It should not need to be adjusted by the users of
-your chart.
-
-### Creating your own repository
-
-### Running the test suite
-
-All DNS providers **must** run the DNS01 provider conformance testing suite,
-else they will have undetermined behaviour when used with cert-manager.
-
-**It is essential that you configure and run the test suite when creating a
-DNS01 webhook.**
-
-An example Go test file has been provided in [main_test.go](https://github.com/cert-manager/webhook-example/blob/master/main_test.go).
-
-You can run the test suite with:
-
+### 1. Install the Chart
 ```bash
-$ TEST_ZONE_NAME=example.com. make test
+helm install hostinger-webhook oci://ghcr.io/lokinado/cert-manager-webhook-hostinger \
+    --namespace cert-manager \
+    --set groupName='<YOUR_UNIQUE_GROUP_NAME>'
 ```
 
-The example file has a number of areas you must fill in and replace with your
-own options in order for tests to pass.
+**Note on `groupName`:**
+This is a unique identifier for your organization (e.g., `acme.mycompany.com`).
+
+  * If you skip the `--set groupName` argument, it defaults to `hostinger-webhook.kbrw.pl`.
+  * **Important:** You must use this same `groupName` when defining your Issuer in the next section.
+
+### 2. Custom Setup (Optional)
+
+If you installed `cert-manager` in a namespace other than `cert-manager`, or if you are using a custom ServiceAccount, you must override the following values:
+
+```bash
+--set certManager.namespace=<YOUR_NAMESPACE> \
+--set certManager.serviceAccountName=<YOUR_SA_NAME>
+```
+
+## Issuer Configuration
+
+### 1. Get your API Token
+
+Generate a new API token in your [Hostinger Profile > API](https://hpanel.hostinger.com/profile/api).
+
+### 2\. Create the Secret
+
+Create a Kubernetes Secret to store your API token.
+
+> **Important:** This Secret must be created in the **same namespace** where you installed this webhook (e.g., `cert-manager`).
+
+```bash
+kubectl create secret generic hostinger-credentials \
+  --from-literal=apiToken='<YOUR_HOSTINGER_API_KEY>' \
+  --namespace=cert-manager
+```
+
+### 3. Create the ClusterIssuer
+
+Create a `ClusterIssuer` (or `Issuer`) that references the secret created above.
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-hostinger
+spec:
+  acme:
+    # The ACME server URL
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # Email address used for ACME registration
+    email: your-email@example.com
+    privateKeySecretRef:
+      name: letsencrypt-account-key
+    solvers:
+    - dns01:
+        webhook:
+          # This must match the groupName you set during Helm installation
+          groupName: hostinger-webhook.kbrw.pl
+          solverName: hostinger
+          config:
+            # Hostinger API URL
+            serverURL: "https://developers.hostinger.com"
+            apiKeySecretRef:
+              name: hostinger-credentials
+              key: apiToken
+```
+
+## Usage Example
+
+Once the Issuer is ready, you can issue a certificate:
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: example-com
+  namespace: default
+spec:
+  dnsNames:
+  - "example.com"
+  - "*.example.com"
+  issuerRef:
+    name: letsencrypt-hostinger
+    kind: ClusterIssuer
+  secretName: example-com-tls
+```
+
+## Development & Testing
+
+### Running the Test Suite
+All DNS providers must pass the DNS01 provider conformance testing suite to ensure correct behavior.
+
+1.  **Prepare Test Data:**
+    Edit the `config.yaml` file found in `testdata/hostinger/`.
+
+    You may need to hardcode api token for testing purposes since `config.yaml` only contains secret ref.
+
+2.  **Run Tests:**
+    You must provide a real domain you control (zone) for the test to write DNS records to.
+
+    ```bash
+    TEST_ZONE_NAME=example.com. make test
+    ```
