@@ -1,3 +1,22 @@
+<!--
++++
+author = "Krzysztof Borowski"
+title = "Cert Manager Webhook Hostinger"
+date = "2025-11-20"
+description = "An Hostinger ACME DNS01 solver webhook for cert-manager"
+summary = "Cert manager webhook to solve DNS01 ACME Challange with Hostinger DNS."
+draft="false"
+tags = [
+    "go", 
+    "cert-manager",
+    "dns"
+]
+categories = [
+    "kubernetes",
+]
++++
+-->
+
 # Cert Manager Webhook Hostinger
 
 This webhook allows `cert-manager` to solve ACME DNS01 challenges using the [Hostinger](https://www.hostinger.com/) API.
